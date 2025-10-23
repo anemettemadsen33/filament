@@ -1,0 +1,10 @@
+# Keep the directory structure but ignore large report files locally
+# Reports will be committed by CI/CD only
+temp/
+*.tmp
+
+# Keep the lighthouse directory and all reports
+!lighthouse/
+!lighthouse/.gitkeep
+!lighthouse/*.html
+!lighthouse/*.json

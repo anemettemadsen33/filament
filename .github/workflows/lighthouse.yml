@@ -1,0 +1,238 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Renthub/package-lock.json
+          
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_mysql, gd
+          coverage: none
+          
+      - name: Install frontend dependencies
+        working-directory: ./Renthub
+        run: npm ci
+        
+      - name: Install backend dependencies
+        working-directory: ./Rental-Platform-main/backend
+        run: composer install --no-dev --prefer-dist --no-interaction
+        
+      - name: Setup Laravel environment
+        working-directory: ./Rental-Platform-main/backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          php artisan migrate --force --seed
+          
+      - name: Build frontend
+        working-directory: ./Renthub
+        run: npm run build
+        env:
+          NODE_ENV: production
+          
+      - name: Start backend server
+        working-directory: ./Rental-Platform-main/backend
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 &
+          sleep 5
+        env:
+          APP_ENV: production
+          APP_DEBUG: false
+          
+      - name: Start frontend server
+        working-directory: ./Renthub
+        run: |
+          npx serve -s dist -l 5173 &
+          sleep 5
+          
+      - name: Wait for servers to be ready
+        run: |
+          timeout 30 bash -c 'until curl -s http://localhost:5173 > /dev/null; do sleep 1; done'
+          timeout 30 bash -c 'until curl -s http://localhost:8000/api/ping > /dev/null; do sleep 1; done'
+          
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli lighthouse
+        
+      - name: Create reports directory
+        run: mkdir -p reports/lighthouse
+        
+      - name: Run Lighthouse audit on Frontend
+        run: |
+          lighthouse http://localhost:5173 \
+            --output json \
+            --output html \
+            --output-path ./reports/lighthouse/frontend-report-${{ github.sha }} \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --quiet || true
+            
+      - name: Run Lighthouse audit on Backend Admin
+        run: |
+          lighthouse http://localhost:8000/admin \
+            --output json \
+            --output html \
+            --output-path ./reports/lighthouse/backend-report-${{ github.sha }} \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --quiet || true
+            
+      - name: Parse Lighthouse scores
+        id: lighthouse_scores
+        run: |
+          if [ -f ./reports/lighthouse/frontend-report-${{ github.sha }}.report.json ]; then
+            echo "Frontend Lighthouse Scores:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json, sys
+          with open('./reports/lighthouse/frontend-report-${{ github.sha }}.report.json') as f:
+              data = json.load(f)
+              categories = data.get('categories', {})
+              for name, cat in categories.items():
+                  score = cat.get('score', 0)
+                  if score is not None:
+                      print(f'{cat.get(\"title\", name)}: {int(score * 100)}/100')
+                  else:
+                      print(f'{cat.get(\"title\", name)}: N/A')
+          " >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports-${{ github.sha }}
+          path: reports/lighthouse/
+          retention-days: 30
+          
+      - name: Comment PR with Lighthouse results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = `./reports/lighthouse/frontend-report-${{ github.sha }}.report.json`;
+            
+            if (!fs.existsSync(reportPath)) {
+              console.log('No Lighthouse report found');
+              return;
+            }
+            
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const categories = report.categories;
+            
+            const scores = Object.entries(categories).map(([key, cat]) => {
+              const score = cat.score ? Math.round(cat.score * 100) : 0;
+              const emoji = score >= 90 ? '🟢' : score >= 50 ? '🟡' : '🔴';
+              return `| ${emoji} ${cat.title} | ${score}/100 |`;
+            }).join('\n');
+            
+            const comment = `## 🔍 Lighthouse Performance Report
+            
+            ### Frontend Scores
+            | Category | Score |
+            |----------|-------|
+            ${scores}
+            
+            📊 [View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+            > Reports are available as artifacts for 30 days.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+            
+      - name: Check performance thresholds
+        run: |
+          if [ -f ./reports/lighthouse/frontend-report-${{ github.sha }}.report.json ]; then
+            python3 << 'EOF'
+          import json, sys
+          
+          with open('./reports/lighthouse/frontend-report-${{ github.sha }}.report.json') as f:
+              data = json.load(f)
+              categories = data.get('categories', {})
+              
+              # Define thresholds
+              thresholds = {
+                  'performance': 0.80,  # 80%
+                  'accessibility': 0.90,  # 90%
+                  'best-practices': 0.90,  # 90%
+                  'seo': 0.90  # 90%
+              }
+              
+              failed = []
+              for key, threshold in thresholds.items():
+                  score = categories.get(key, {}).get('score', 0)
+                  if score is not None and score < threshold:
+                      title = categories.get(key, {}).get('title', key)
+                      failed.append(f'{title}: {int(score * 100)}/100 (threshold: {int(threshold * 100)})')
+              
+              if failed:
+                  print('⚠️ Performance thresholds not met:')
+                  for fail in failed:
+                      print(f'  - {fail}')
+                  # Don't fail the build, just warn
+                  # sys.exit(1)
+              else:
+                  print('✅ All performance thresholds met!')
+          EOF
+          fi
+          
+      - name: Commit reports to repository
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Create reports directory in repo if it doesn't exist
+          mkdir -p reports/lighthouse
+          
+          # Copy reports with timestamp
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          if [ -f ./reports/lighthouse/frontend-report-${{ github.sha }}.report.html ]; then
+            cp ./reports/lighthouse/frontend-report-${{ github.sha }}.report.html \
+               reports/lighthouse/frontend-${TIMESTAMP}.html
+          fi
+          if [ -f ./reports/lighthouse/frontend-report-${{ github.sha }}.report.json ]; then
+            cp ./reports/lighthouse/frontend-report-${{ github.sha }}.report.json \
+               reports/lighthouse/frontend-${TIMESTAMP}.json
+          fi
+          
+          # Commit if there are changes
+          if [ -n "$(git status --porcelain reports/lighthouse)" ]; then
+            git add reports/lighthouse
+            git commit -m "chore: add Lighthouse report ${TIMESTAMP} [skip ci]"
+            git push
+          fi
