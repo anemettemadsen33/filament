@@ -1,0 +1,65 @@
+# OS
+.DS_Store
+Thumbs.db
+Icon?
+
+# Node / Frontend
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.vscode/
+.dist/
+dist/
+.vite/
+.cache/
+.eslintcache
+coverage/
+*.tsbuildinfo
+
+# Vite/React build outputs
+Renthub/dist/
+Renthub/.vite/
+Renthub/node_modules/
+
+# PHP / Composer / Laravel
+vendor/
+composer.lock
+.env
+.env.*
+.env.local
+.env.production
+.phpunit.result.cache
+.php-cs-fixer.cache
+
+# Laravel specific
+storage/
+bootstrap/cache/
+public/storage
+public/build/
+
+# Logs
+*.log
+logs/
+storage/*.key
+
+# Docker
+.docker/
+Dockerfile*
+**/docker-compose*.yml
+
+# IDEs
+.idea/
+*.swp
+*.swo
+*.swn
+*.orig
+
+# Misc
+.tmp/
+.tmp-*
+*.bak
+*.old
