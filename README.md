@@ -79,6 +79,13 @@ npm run dev
 
 ## 📚 Documentation
 
+### Getting Started
+
+| Document | Description |
+|----------|-------------|
+| [QUICK_START.md](QUICK_START.md) | ⚡ Get running in 10 minutes |
+| [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md) | ✅ Pre-production deployment checklist |
+
 ### Core Documentation
 
 | Document | Description |
@@ -87,6 +94,13 @@ npm run dev
 | [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) | Security best practices and audit checklist |
 | [TESTING_SETUP.md](TESTING_SETUP.md) | Testing infrastructure for backend and frontend |
 | [CI_CD_GUIDE.md](CI_CD_GUIDE.md) | Continuous Integration/Deployment setup |
+
+### Configuration
+
+| Document | Description |
+|----------|-------------|
+| [.env.backend.example](.env.backend.example) | Backend environment variables template |
+| [.env.frontend.example](.env.frontend.example) | Frontend environment variables template |
 
 ### Backend Documentation
 
