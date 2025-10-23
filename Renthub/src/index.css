@@ -1,0 +1,279 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+@import "./safari-fixes.css";
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  
+  html {
+    font-size: 16px;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-width: 320px;
+    overflow-x: hidden;
+    font-size: 1rem;
+    line-height: 1.5;
+    position: relative;
+    width: 100%;
+  }
+  
+  code, pre {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    -webkit-scrollbar-width: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* User select utilities with proper prefixes */
+  .select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  .select-text {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  .select-all {
+    -webkit-user-select: all;
+    -moz-user-select: all;
+    -ms-user-select: all;
+    user-select: all;
+  }
+  
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    html {
+      font-size: 16px;
+    }
+  }
+  
+  @media (min-width: 1920px) {
+    html {
+      font-size: 16px;
+    }
+    .container {
+      max-width: 1536px;
+    }
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  button, input, select, textarea {
+    min-width: 0;
+    font-size: inherit;
+  }
+
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      max-width: 640px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      max-width: 768px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1024px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      max-width: 1536px;
+    }
+  }
+
+  .google-map-container {
+    position: relative;
+  }
+
+  .google-map-container > div {
+    border-radius: inherit;
+  }
+
+  .gm-style .gm-style-iw-c {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .gm-style .gm-style-iw-d {
+    overflow: hidden !important;
+  }
+
+  .gm-style .gm-style-iw-t::after {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+}
+
+:root {
+  --background: oklch(0.98 0.005 250);
+  --foreground: oklch(0.20 0.01 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.20 0.01 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.20 0.01 250);
+  --primary: oklch(0.45 0.15 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.01 250);
+  --secondary-foreground: oklch(0.20 0.01 250);
+  --muted: oklch(0.96 0.005 250);
+  --muted-foreground: oklch(0.50 0.01 250);
+  --accent: oklch(0.65 0.15 145);
+  --accent-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.70 0.15 35);
+  --warning-foreground: oklch(0.15 0.01 250);
+  --destructive: oklch(0.60 0.20 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.90 0.005 250);
+  --input: oklch(0.94 0.005 250);
+  --ring: oklch(0.45 0.15 250);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.14 0.01 250);
+  --foreground: oklch(0.96 0.005 250);
+  --card: oklch(0.18 0.01 250);
+  --card-foreground: oklch(0.96 0.005 250);
+  --popover: oklch(0.18 0.01 250);
+  --popover-foreground: oklch(0.96 0.005 250);
+  --primary: oklch(0.55 0.18 250);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.22 0.01 250);
+  --secondary-foreground: oklch(0.96 0.005 250);
+  --muted: oklch(0.24 0.01 250);
+  --muted-foreground: oklch(0.60 0.01 250);
+  --accent: oklch(0.60 0.18 145);
+  --accent-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.65 0.18 35);
+  --warning-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.28 0.01 250);
+  --input: oklch(0.26 0.01 250);
+  --ring: oklch(0.55 0.18 250);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.5);
+  --radius-xl: calc(var(--radius) * 2);
+  --radius-2xl: calc(var(--radius) * 3);
+  --radius-full: 9999px;
+}
+
+/* Performance: Doar animații GPU-accelerated (transform, opacity) */
+@layer utilities {
+  /* Înlocuiește transition-all cu transition pe proprietăți GPU-accelerated */
+  .transition-gpu {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    will-change: transform, opacity;
+  }
+  
+  .transition-gpu-fast {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    will-change: transform, opacity;
+  }
+  
+  /* Pentru hover effects - folosește scale în loc de shadow/border */
+  .hover-lift:hover {
+    transform: translateY(-2px) scale(1.01);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  
+  /* Elimină will-change după animație */
+  .transition-gpu:not(:hover):not(:focus) {
+    will-change: auto;
+  }
+}

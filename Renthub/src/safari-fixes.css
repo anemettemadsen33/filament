@@ -1,0 +1,7 @@
+/* Safari-specific vendor prefixes and polyfills */
+
+/* Fix: user-select on swiped Sonner toasts for Safari 3+ */
+[data-sonner-toast][data-swiped="true"] {
+  -webkit-user-select: none;
+  user-select: none;
+}

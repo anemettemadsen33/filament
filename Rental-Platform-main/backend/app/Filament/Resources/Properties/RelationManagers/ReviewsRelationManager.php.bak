@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Filament\Resources\Properties\RelationManagers;
+
+use Filament\Forms;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables;
+use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Resources\RelationManagers\RelationManager;
+
+class ReviewsRelationManager extends RelationManager
+{
+ protected static string $relationship = 'reviews';
+ protected static ?string $title = 'Reviews';
+
+ public function form(Forms\Form $form): Forms\Form
+ {
+ return $form
+ ->schema([
+ Textarea::make('comment')->rows(5)->required(),
+ ]);
+ }
+
+ public function table(Tables\Table $table): Tables\Table
+ {
+ return $table
+ ->columns([
+ TextColumn::make('user.name')->label('User')->searchable(),
+ BadgeColumn::make('rating')->label('Rating')->colors([
+ 'danger' => fn ($state) => $state <=2,
+ 'warning' => fn ($state) => $state ==3,
+ 'success' => fn ($state) => $state >=4,
+ ]),
+ TextColumn::make('comment')->limit(60)->searchable(),
+ BadgeColumn::make('status')->colors([
+ 'warning' => 'pending',
+ 'success' => 'approved',
+ 'danger' => 'rejected',
+ ]),
+ TextColumn::make('created_at')->dateTime()->since(),
+ ])
+ ->actions([
+ Tables\Actions\EditAction::make(),
+ Tables\Actions\DeleteAction::make(),
+ Tables\Actions\Action::make('approve')->label('Approve')->visible(fn ($record) => $record->status !== 'approved')->action(fn ($record) => $record->update(['status' => 'approved'])),
+ Tables\Actions\Action::make('reject')->label('Reject')->color('danger')->visible(fn ($record) => $record->status !== 'rejected')->action(fn ($record) => $record->update(['status' => 'rejected'])),
+ ]);
+ }
+}

@@ -1,0 +1,12 @@
+// Lazy-loaded UI components for better code splitting
+export { Button } from './button'
+export { Badge } from './badge'
+export { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './card'
+export { Input } from './input'
+export { Label } from './label'
+export { Textarea } from './textarea'
+export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
+export { ScrollArea } from './scroll-area'
+export { Separator } from './separator'
+export { Alert, AlertDescription } from './alert'

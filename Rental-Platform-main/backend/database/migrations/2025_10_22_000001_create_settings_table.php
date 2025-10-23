@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('settings', function (Blueprint $table) {
+            $table->id();
+            // Email (SMTP) settings
+            $table->string('smtp_host')->nullable();
+            $table->unsignedInteger('smtp_port')->nullable();
+            $table->string('smtp_username')->nullable();
+            $table->string('smtp_password')->nullable();
+            $table->enum('smtp_encryption', ['tls', 'ssl'])->nullable();
+            $table->string('mail_from_address')->nullable();
+            $table->string('mail_from_name')->nullable();
+            // Public site URL
+            $table->string('public_site_url')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('settings');
+    }
+};

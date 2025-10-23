@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Rental Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .loading {
+            color: #856404;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .property-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        .property-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .property-card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-ok {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏠 Rental Platform - API Testing Dashboard</h1>
+    
+    <div class="test-section">
+        <h2>📊 Server Status</h2>
+        <p>Backend: <span id="backendStatus" class="status-badge">Checking...</span></p>
+        <p>Frontend: <span id="frontendStatus" class="status-badge">Checking...</span></p>
+        <button onclick="checkServers()">🔄 Check Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 API Endpoints Test</h2>
+        <button onclick="testPing()">Test /api/ping</button>
+        <button onclick="testProperties()">Test /api/properties</button>
+        <button onclick="testSettings()">Test /api/settings</button>
+        <button onclick="runAllTests()">▶️ Run All Tests</button>
+        <div id="apiResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔐 Authentication Test</h2>
+        <div>
+            <input type="email" id="loginEmail" placeholder="Email" value="admin@example.com">
+            <input type="password" id="loginPassword" placeholder="Password" value="password">
+            <button onclick="testLogin()">Login</button>
+            <button onclick="testRegister()">Test Register</button>
+        </div>
+        <div id="authResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📦 Properties Display</h2>
+        <button onclick="loadProperties()">Load Properties</button>
+        <div id="propertiesGrid" class="grid"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 CORS Test</h2>
+        <p>Testing CORS from: <code id="currentOrigin">http://localhost:3000</code></p>
+        <button onclick="testCORS()">Test CORS</button>
+        <div id="corsResults"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        const FRONTEND_URL = 'http://localhost:3000';
+        let authToken = null;
+
+        function showResult(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        function appendResult(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            el.appendChild(div);
+        }
+
+        async function checkServers() {
+            // Check Backend
+            try {
+                const response = await fetch(`${API_URL}/api/ping`);
+                const data = await response.json();
+                document.getElementById('backendStatus').textContent = `✅ Online (${data.time})`;
+                document.getElementById('backendStatus').className = 'status-badge status-ok';
+            } catch (error) {
+                document.getElementById('backendStatus').textContent = '❌ Offline';
+                document.getElementById('backendStatus').className = 'status-badge status-error';
+            }
+
+            // Check Frontend
+            try {
+                const response = await fetch(FRONTEND_URL);
+                document.getElementById('frontendStatus').textContent = '✅ Online';
+                document.getElementById('frontendStatus').className = 'status-badge status-ok';
+            } catch (error) {
+                document.getElementById('frontendStatus').textContent = '❌ Offline';
+                document.getElementById('frontendStatus').className = 'status-badge status-error';
+            }
+        }
+
+        async function testPing() {
+            showResult('apiResults', 'Testing /api/ping...', 'loading');
+            try {
+                const response = await fetch(`${API_URL}/api/ping`);
+                const data = await response.json();
+                showResult('apiResults', 
+                    `✅ SUCCESS\nStatus: ${response.status}\nResponse:\n${JSON.stringify(data, null, 2)}`, 
+                    'success');
+            } catch (error) {
+                showResult('apiResults', 
+                    `❌ ERROR\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testProperties() {
+            showResult('apiResults', 'Testing /api/properties...', 'loading');
+            try {
+                const response = await fetch(`${API_URL}/api/properties`);
+                const data = await response.json();
+                showResult('apiResults', 
+                    `✅ SUCCESS\nStatus: ${response.status}\nTotal Properties: ${data.meta.total}\nCurrent Page: ${data.meta.current_page}\n\nFirst Property:\n${JSON.stringify(data.data[0], null, 2)}`, 
+                    'success');
+            } catch (error) {
+                showResult('apiResults', 
+                    `❌ ERROR\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testSettings() {
+            showResult('apiResults', 'Testing /api/settings...', 'loading');
+            try {
+                const response = await fetch(`${API_URL}/api/settings`);
+                const data = await response.json();
+                showResult('apiResults', 
+                    `✅ SUCCESS\nStatus: ${response.status}\n\nSettings:\n${JSON.stringify(data, null, 2)}`, 
+                    'success');
+            } catch (error) {
+                showResult('apiResults', 
+                    `❌ ERROR\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('apiResults').innerHTML = '';
+            appendResult('apiResults', '🚀 Running all API tests...', 'loading');
+            
+            await testPing();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testProperties();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testSettings();
+            
+            appendResult('apiResults', '✅ All tests completed!', 'success');
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            showResult('authResults', 'Logging in...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    showResult('authResults', 
+                        `✅ LOGIN SUCCESS\nToken: ${authToken.substring(0, 50)}...\nUser: ${data.user.name}\nEmail: ${data.user.email}\nRole: ${data.user.role}`, 
+                        'success');
+                } else {
+                    showResult('authResults', 
+                        `❌ LOGIN FAILED\n${JSON.stringify(data, null, 2)}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('authResults', 
+                    `❌ ERROR\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function testRegister() {
+            const randomNum = Math.floor(Math.random() * 10000);
+            const testData = {
+                name: `Test User ${randomNum}`,
+                email: `test${randomNum}@example.com`,
+                password: 'password123',
+                password_confirmation: 'password123'
+            };
+            
+            showResult('authResults', 'Registering new user...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    showResult('authResults', 
+                        `✅ REGISTER SUCCESS\nUser: ${data.user.name}\nEmail: ${data.user.email}\nToken: ${authToken.substring(0, 50)}...`, 
+                        'success');
+                } else {
+                    showResult('authResults', 
+                        `❌ REGISTER FAILED\n${JSON.stringify(data, null, 2)}`, 
+                        'error');
+                }
+            } catch (error) {
+                showResult('authResults', 
+                    `❌ ERROR\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        async function loadProperties() {
+            const grid = document.getElementById('propertiesGrid');
+            grid.innerHTML = '<div class="result loading">Loading properties...</div>';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/properties?per_page=6`);
+                const data = await response.json();
+                
+                grid.innerHTML = '';
+                data.data.forEach(property => {
+                    const card = document.createElement('div');
+                    card.className = 'property-card';
+                    card.innerHTML = `
+                        <h3>${property.title}</h3>
+                        <p><strong>Type:</strong> ${property.property_type}</p>
+                        <p><strong>City:</strong> ${property.city}, ${property.country}</p>
+                        <p><strong>Price:</strong> ${property.pricing.formatted.price_per_night}</p>
+                        <p><strong>Bedrooms:</strong> ${property.bedrooms} | <strong>Bathrooms:</strong> ${property.bathrooms}</p>
+                        <p><strong>Owner:</strong> ${property.owner.name}</p>
+                        <p><strong>Status:</strong> <span class="status-badge status-ok">${property.status}</span></p>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                grid.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testCORS() {
+            showResult('corsResults', 'Testing CORS...', 'loading');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/ping`, {
+                    method: 'GET',
+                    headers: {
+                        'Origin': FRONTEND_URL,
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials'),
+                };
+                
+                showResult('corsResults', 
+                    `✅ CORS Test Complete\n\nCORS Headers:\n${JSON.stringify(corsHeaders, null, 2)}`, 
+                    'success');
+            } catch (error) {
+                showResult('corsResults', 
+                    `❌ CORS Error\n${error.message}`, 
+                    'error');
+            }
+        }
+
+        // Auto-check servers on load
+        window.addEventListener('load', () => {
+            checkServers();
+            document.getElementById('currentOrigin').textContent = window.location.origin;
+        });
+    </script>
+</body>
+</html>

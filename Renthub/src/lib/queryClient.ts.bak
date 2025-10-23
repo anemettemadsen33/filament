@@ -1,0 +1,202 @@
+/**
+ * TanStack Query Configuration for RentHub
+ * Centralized query client setup with error handling and caching
+ */
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { ReactNode } from 'react'
+import config from './config'
+import apiClient, { ApiError } from './apiClient'
+
+// Query Client Configuration
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Stale time - data is fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Cache time - data stays in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Retry failed requests
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error instanceof Error && 'status' in error) {
+          const apiError = error as ApiError
+          if (apiError.status && apiError.status >= 400 && apiError.status < 500) {
+            return false
+          }
+        }
+        return failureCount < 3
+      },
+      // Retry delay with exponential backoff
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Refetch on window focus in development
+      refetchOnWindowFocus: config.APP_ENV === 'development',
+      // Don't refetch on reconnect by default
+      refetchOnReconnect: false,
+    },
+    mutations: {
+      // Retry mutations once
+      retry: 1,
+      // Global error handling for mutations
+      onError: (error) => {
+        console.error('Mutation error:', error)
+        // You can add global error handling here (toast notifications, etc.)
+      },
+    },
+  },
+})
+
+// Query Keys Factory - Centralized query key management
+export const queryKeys = {
+  // Authentication
+  auth: {
+    user: () => ['auth', 'user'] as const,
+    profile: () => ['auth', 'profile'] as const,
+  },
+  
+  // Properties
+  properties: {
+    all: () => ['properties'] as const,
+    lists: () => [...queryKeys.properties.all(), 'list'] as const,
+    list: (filters: Record<string, any>) => 
+      [...queryKeys.properties.lists(), filters] as const,
+    details: () => [...queryKeys.properties.all(), 'detail'] as const,
+    detail: (id: string | number) => 
+      [...queryKeys.properties.details(), id] as const,
+    search: (query: string) => 
+      [...queryKeys.properties.all(), 'search', query] as const,
+    recommended: (userId?: string) => 
+      [...queryKeys.properties.all(), 'recommended', userId] as const,
+    similar: (propertyId: string | number) => 
+      [...queryKeys.properties.all(), 'similar', propertyId] as const,
+  },
+  
+  // Bookings
+  bookings: {
+    all: () => ['bookings'] as const,
+    lists: () => [...queryKeys.bookings.all(), 'list'] as const,
+    list: (userId?: string) => 
+      [...queryKeys.bookings.lists(), userId] as const,
+    details: () => [...queryKeys.bookings.all(), 'detail'] as const,
+    detail: (id: string | number) => 
+      [...queryKeys.bookings.details(), id] as const,
+  },
+  
+  // Messages/Chat
+  messages: {
+    all: () => ['messages'] as const,
+    conversations: () => [...queryKeys.messages.all(), 'conversations'] as const,
+    conversation: (id: string | number) => 
+      [...queryKeys.messages.conversations(), id] as const,
+  },
+  
+  // Reviews
+  reviews: {
+    all: () => ['reviews'] as const,
+    property: (propertyId: string | number) => 
+      [...queryKeys.reviews.all(), 'property', propertyId] as const,
+    user: (userId: string | number) => 
+      [...queryKeys.reviews.all(), 'user', userId] as const,
+  },
+  
+  // Favorites
+  favorites: {
+    all: () => ['favorites'] as const,
+    user: (userId?: string) => 
+      [...queryKeys.favorites.all(), 'user', userId] as const,
+  },
+  
+  // Notifications
+  notifications: {
+    all: () => ['notifications'] as const,
+    user: (userId?: string) => 
+      [...queryKeys.notifications.all(), 'user', userId] as const,
+    unreadCount: (userId?: string) => 
+      [...queryKeys.notifications.all(), 'unreadCount', userId] as const,
+  },
+  
+  // Analytics
+  analytics: {
+    all: () => ['analytics'] as const,
+    property: (propertyId: string | number) => 
+      [...queryKeys.analytics.all(), 'property', propertyId] as const,
+    user: (userId?: string) => 
+      [...queryKeys.analytics.all(), 'user', userId] as const,
+  },
+  
+  // Smart Home
+  smartHome: {
+    all: () => ['smartHome'] as const,
+    devices: (propertyId: string | number) => 
+      [...queryKeys.smartHome.all(), 'devices', propertyId] as const,
+    device: (deviceId: string | number) => 
+      [...queryKeys.smartHome.all(), 'device', deviceId] as const,
+  },
+}
+
+// Query Client Provider Component
+interface QueryProviderProps {
+  children: ReactNode
+}
+
+export function QueryProvider({ children }: QueryProviderProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      {config.APP_ENV === 'development' && (
+        <ReactQueryDevtools 
+          initialIsOpen={false}
+          position="bottom-right"
+        />
+      )}
+    </QueryClientProvider>
+  )
+}
+
+// Utility functions for cache management
+export const cacheUtils = {
+  // Invalidate all queries for a specific key pattern
+  invalidateQueries: (queryKey: readonly unknown[]) => {
+    return queryClient.invalidateQueries({ queryKey })
+  },
+  
+  // Remove specific query from cache
+  removeQueries: (queryKey: readonly unknown[]) => {
+    return queryClient.removeQueries({ queryKey })
+  },
+  
+  // Set query data manually
+  setQueryData: <T>(queryKey: readonly unknown[], data: T) => {
+    return queryClient.setQueryData(queryKey, data)
+  },
+  
+  // Get query data from cache
+  getQueryData: <T>(queryKey: readonly unknown[]) => {
+    return queryClient.getQueryData<T>(queryKey)
+  },
+  
+  // Prefetch query
+  prefetchQuery: async (queryKey: readonly unknown[], queryFn: () => Promise<any>) => {
+    return queryClient.prefetchQuery({
+      queryKey,
+      queryFn,
+    })
+  },
+  
+  // Clear all cache
+  clear: () => {
+    queryClient.clear()
+  },
+  
+  // Get cache stats
+  getStats: () => {
+    const cache = queryClient.getQueryCache()
+    return {
+      totalQueries: cache.getAll().length,
+      activeQueries: cache.getAll().filter(query => query.getObserversCount() > 0).length,
+    }
+  },
+}
+
+export default queryClient

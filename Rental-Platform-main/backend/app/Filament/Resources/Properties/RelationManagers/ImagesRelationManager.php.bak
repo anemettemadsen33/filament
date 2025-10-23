@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Filament\Resources\Properties\RelationManagers;
+
+use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Resources\RelationManagers\RelationManager;
+
+class ImagesRelationManager extends RelationManager
+{
+ protected static string $relationship = 'images';
+ protected static ?string $recordTitleAttribute = 'image_path';
+ protected static ?string $title = 'Images';
+
+ public function form(Forms\Form $form): Forms\Form
+ {
+ return $form
+ ->schema([
+ FileUpload::make('image_path')
+ ->directory(fn () => 'properties/'. $this->getOwnerRecord()->id)
+ ->image()
+ ->preserveFilenames()
+ ->required(),
+ TextInput::make('order')->numeric()->minValue(0)->default(0),
+ ]);
+ }
+
+ public function table(Tables\Table $table): Tables\Table
+ {
+ return $table
+ ->columns([
+ ImageColumn::make('image_path')->disk('public')->label('Image')->square(),
+ IconColumn::make('is_primary')->boolean()->label('Primary'),
+ TextColumn::make('order')->sortable(),
+ TextColumn::make('created_at')->dateTime()->since(),
+ ])
+ ->headerActions([
+ Tables\Actions\CreateAction::make(),
+ ])
+ ->actions([
+ Tables\Actions\EditAction::make(),
+ Tables\Actions\DeleteAction::make(),
+ Tables\Actions\Action::make('set_primary')
+ ->label('Set as Primary')
+ ->visible(fn ($record) => !$record->is_primary)
+ ->action(function ($record) {
+ $record->property->images()->update(['is_primary' => false]);
+ $record->update(['is_primary' => true]);
+ }),
+ ])
+ ->reorderable('order');
+ }
+}

@@ -1,0 +1,291 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Rental Platform API",
+        "description": "OpenAPI documentation for the Rental Platform backend. Auth uses Laravel Sanctum personal access tokens (Bearer).",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "Current server (relative)"
+        }
+    ],
+    "paths": {
+        "/api/oauth/{provider}/redirect": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get provider redirect URL",
+                "description": "Get redirect URL for the provider (SPA-friendly)",
+                "operationId": "292a15c4f206f0a3a9d0220de9b02dfc",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "google",
+                                "github",
+                                "facebook"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "url": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Unsupported provider"
+                    }
+                }
+            }
+        },
+        "/api/oauth/{provider}/callback": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "OAuth callback handler",
+                "description": "OAuth callback: create/login user then redirect to frontend with token",
+                "operationId": "372c02c068e86a8e0498c74ff1aec852",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "google",
+                                "github",
+                                "facebook"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect to frontend with token"
+                    }
+                }
+            }
+        },
+        "/api/ping": {
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "summary": "Health check",
+                "description": "Health check endpoint.",
+                "operationId": "733e904e1c9d2c540abcb3a716b2980e",
+                "responses": {
+                    "200": {
+                        "description": "Service is up",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok"
+                                        },
+                                        "time": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/search": {
+            "get": {
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Search properties",
+                "description": "Advanced property search with Meilisearch.",
+                "operationId": "d70c8d72bc43cc6c7321086ae9d2c1f1",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search query (title, description, city)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "city",
+                        "in": "query",
+                        "description": "Filter by city",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "country",
+                        "in": "query",
+                        "description": "Filter by country",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "property_type",
+                        "in": "query",
+                        "description": "Filter by type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "rental_type",
+                        "in": "query",
+                        "description": "Filter by rental type",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "bedrooms",
+                        "in": "query",
+                        "description": "Minimum bedrooms",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "bathrooms",
+                        "in": "query",
+                        "description": "Minimum bathrooms",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "max_guests",
+                        "in": "query",
+                        "description": "Minimum guests capacity",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "min_price",
+                        "in": "query",
+                        "description": "Min price per night",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "max_price",
+                        "in": "query",
+                        "description": "Max price per night",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort field:direction (e.g., price_per_night:asc)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Search results",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        },
+                                        "page": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "apiKey",
+                "description": "Enter token in format (Bearer <token>)",
+                "name": "Authorization",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
+            "name": "System",
+            "description": "System"
+        },
+        {
+            "name": "Search",
+            "description": "Search"
+        }
+    ]
+}
