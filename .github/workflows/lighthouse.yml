@@ -10,6 +10,12 @@ on:
       - main
   workflow_dispatch: # Allow manual trigger
 
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
