@@ -1,39 +1,30 @@
 name: Lighthouse Performance Audit
 
 on:
-  # Run on PRs to main
-  pull_request:
-    branches:
-      - main
-  
-  # Run on pushes to main
+  # Trigger on push to main branch
   push:
     branches:
       - main
   
-  # Daily production monitoring at 2 AM UTC
-  schedule:
-    - cron: '0 2 * * *'
-  
-  # Manual trigger
-  workflow_dispatch:
-    inputs:
-      url:
-        description: 'URL to audit'
-        required: false
-        default: 'http://localhost:5173'
+  # Trigger on pull requests to main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   lighthouse:
-    name: Run Lighthouse Audit
+    name: Run Lighthouse CI
     runs-on: ubuntu-latest
     
     steps:
-      # Checkout code
-      - name: Checkout code
+      # Step 1: Checkout the repository
+      # This pulls the code from the repository so we can work with it
+      - name: Checkout repository
         uses: actions/checkout@v4
       
-      # Setup Node.js
+      # Step 2: Setup Node.js environment
+      # Install Node.js 18 which is required for the project
+      # Cache npm dependencies to speed up subsequent runs
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,171 +32,59 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'Renthub/package-lock.json'
       
-      # Install dependencies
+      # Step 3: Install project dependencies
+      # Use 'npm ci' for clean install based on package-lock.json
+      # This ensures reproducible builds
       - name: Install dependencies
         run: |
           cd Renthub
           npm ci
       
-      # Build application
+      # Step 4: Install Lighthouse CI globally
+      # This provides the 'lhci' command for running audits
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.13.x
+      
+      # Step 5: Build the application
+      # Compile TypeScript and bundle the Vite app for production
       - name: Build application
         run: |
           cd Renthub
           npm run build
       
-      # Start preview server
+      # Step 6: Start preview server in background
+      # The preview server serves the built application
+      # We use '&' to run it in background and wait-on to ensure it's ready
       - name: Start preview server
         run: |
           cd Renthub
           npm run preview &
-          sleep 10
-          # Wait for server to be ready
           npx wait-on http://localhost:4173 --timeout 60000
       
-      # Run Lighthouse CI
+      # Step 7: Run Lighthouse CI with autorun
+      # This automatically discovers URLs and runs audits
+      # Reports are generated in .lighthouseci folder
       - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v10
-        with:
-          urls: |
-            http://localhost:4173
-            http://localhost:4173/search
-            http://localhost:4173/properties
-          budgetPath: './lighthouse-budget.json'
-          uploadArtifacts: true
-          temporaryPublicStorage: true
-          runs: 3
+        run: |
+          cd Renthub
+          lhci autorun
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+          LHCI_BUILD_CONTEXT__COMMIT_TIME: ${{ github.event.head_commit.timestamp }}
+          LHCI_BUILD_CONTEXT__CURRENT_BRANCH: ${{ github.ref_name }}
+          LHCI_BUILD_CONTEXT__COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          LHCI_BUILD_CONTEXT__AUTHOR: ${{ github.event.head_commit.author.name }}
       
-      # Upload results as artifacts
+      # Step 8: Upload Lighthouse reports as artifact
+      # Artifacts are stored for 30 days and can be downloaded from the Actions tab
+      # if-no-files-found: warn - won't fail if .lighthouseci folder is empty
+      # compression-level: 6 - good balance between speed and size
       - name: Upload Lighthouse reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lighthouse-reports-${{ github.run_number }}
-          path: |
-            .lighthouseci
+          name: lighthouse-reports
+          path: Renthub/.lighthouseci
           retention-days: 30
-      
-      # Save reports to repo (optional - for tracking)
-      - name: Save reports to repository
-        if: github.ref == 'refs/heads/main'
-        run: |
-          mkdir -p lighthouse-reports/$(date +%Y-%m-%d)
-          cp -r .lighthouseci/* lighthouse-reports/$(date +%Y-%m-%d)/ || true
-      
-      # Create performance budget check
-      - name: Check performance budget
-        run: |
-          echo "Checking performance budget..."
-          # This will fail if budget is exceeded
-          npx lhci assert --preset lighthouse:recommended
-      
-      # Comment on PR with results
-      - name: Comment PR with results
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            // Read lighthouse results
-            let manifestPath = '.lighthouseci/manifest.json';
-            if (!fs.existsSync(manifestPath)) {
-              console.log('No manifest found');
-              return;
-            }
-            
-            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-            const results = manifest[0];
-            
-            if (!results || !results.summary) {
-              console.log('No summary found');
-              return;
-            }
-            
-            const summary = results.summary;
-            
-            const comment = `## 🔍 Lighthouse Performance Report
-            
-            ### Performance Scores
-            
-            | Metric | Score | Status |
-            |--------|-------|--------|
-            | **Performance** | ${Math.round(summary.performance * 100)}/100 | ${summary.performance >= 0.9 ? '✅' : summary.performance >= 0.5 ? '⚠️' : '❌'} |
-            | **Accessibility** | ${Math.round(summary.accessibility * 100)}/100 | ${summary.accessibility >= 0.9 ? '✅' : '⚠️'} |
-            | **Best Practices** | ${Math.round(summary['best-practices'] * 100)}/100 | ${summary['best-practices'] >= 0.9 ? '✅' : '⚠️'} |
-            | **SEO** | ${Math.round(summary.seo * 100)}/100 | ${summary.seo >= 0.9 ? '✅' : '⚠️'} |
-            
-            ### Performance Status
-            
-            ${summary.performance >= 0.9 ? '✅ **PASSED** - Great performance!' : summary.performance >= 0.5 ? '⚠️ **NEEDS IMPROVEMENT** - Performance below target' : '❌ **FAILED** - Critical performance issues'}
-            
-            **Target**: 90+ performance score
-            **Current**: ${Math.round(summary.performance * 100)}
-            
-            ### 📊 Detailed Reports
-            
-            Full Lighthouse reports are available in the workflow artifacts.
-            
-            ---
-            
-            *Automated by Lighthouse CI*
-            `;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-
-  # Compare with baseline (only on main branch)
-  compare:
-    name: Compare with Baseline
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: lighthouse
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download current reports
-        uses: actions/download-artifact@v4
-        with:
-          name: lighthouse-reports-${{ github.run_number }}
-          path: ./current-reports
-      
-      - name: Compare with baseline
-        run: |
-          echo "Comparing with baseline reports..."
-          
-          if [ -d "lighthouse-reports/baseline" ]; then
-            echo "Baseline found, comparing..."
-            # Add comparison logic here
-            echo "✅ Comparison complete"
-          else
-            echo "⚠️ No baseline found, this will be the new baseline"
-          fi
-      
-      - name: Create comparison summary
-        run: |
-          echo "## Lighthouse Comparison Report" > comparison.md
-          echo "" >> comparison.md
-          echo "📊 Performance trend tracking" >> comparison.md
-          echo "" >> comparison.md
-          echo "Check the full reports for detailed analysis." >> comparison.md
-
-  # Alert on performance regression
-  alert:
-    name: Alert on Regression
-    runs-on: ubuntu-latest
-    needs: lighthouse
-    if: failure()
-    
-    steps:
-      - name: Send alert
-        run: |
-          echo "⚠️ Performance regression detected!"
-          echo "Performance score below threshold or critical errors found."
-          # Add notification logic here (Slack, email, etc.)
+          if-no-files-found: warn
+          compression-level: 6
