@@ -1,4 +1,4 @@
-export type Language = 'en' | 'es' | 'fr' | 'ro'
+export type Language = 'en' | 'de' | 'ro' | 'es' | 'fr'
 
 export interface LanguageConfig {
   code: Language
@@ -10,9 +10,10 @@ export interface LanguageConfig {
 
 export const LANGUAGES: LanguageConfig[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
+  { code: 'ro', name: 'Romanian', nativeName: 'Română', flag: '🇷🇴' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
-  { code: 'ro', name: 'Romanian', nativeName: 'Română', flag: '🇷🇴' }
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' }
 ]
 
 export const DEFAULT_LANGUAGE: Language = 'en'

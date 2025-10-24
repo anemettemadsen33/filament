@@ -1,15 +1,17 @@
 import { en } from './locales/en'
+import { de } from './locales/de'
+import { ro } from './locales/ro'
 import { es } from './locales/es'
 import { fr } from './locales/fr'
-import { ro } from './locales/ro'
 import { Language } from './types'
 import type { TranslationKeys } from './locales/en'
 
 const translations: Record<Language, TranslationKeys> = {
   en,
+  de,
+  ro,
   es,
-  fr,
-  ro
+  fr
 }
 
 export function getTranslations(language: Language): TranslationKeys {
