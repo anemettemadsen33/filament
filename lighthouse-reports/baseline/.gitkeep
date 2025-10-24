@@ -1,0 +1,2 @@
+# This file ensures the baseline directory is tracked in Git
+# Actual reports (HTML/JSON) will be .gitignore'd

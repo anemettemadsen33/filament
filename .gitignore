@@ -63,3 +63,11 @@ Dockerfile*
 .tmp-*
 *.bak
 *.old
+
+# Lighthouse reports (keep structure, ignore actual reports)
+lighthouse-reports/**/*.html
+lighthouse-reports/**/*.json
+lighthouse-reports/**/*.txt
+!lighthouse-reports/README.md
+!lighthouse-reports/baseline/.gitkeep
+.lighthouseci/
