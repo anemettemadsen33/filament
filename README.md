@@ -37,6 +37,8 @@ npm install
 npm run dev
 ```
 
+**Having issues?** → See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for connection, build, and environment problems
+
 ### For Product/Business
 ```bash
 # Review business case and ROI
@@ -111,15 +113,25 @@ cat PERFORMANCE_ROI.md
    - Frontend (React + Vite) architecture
    - File locations and purposes
 
+8. **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** **NEW!**
+   - GitHub/npm connectivity troubleshooting
+   - Firewall and proxy configuration
+   - Development environment issues
+   - Build and compilation problems
+   - Database connection issues
+   - Docker troubleshooting
+   - GitHub Copilot setup and debugging
+   - Common error messages and solutions
+
 ### 💰 **Business Case & ROI**
-8. **[PERFORMANCE_ROI.md](./PERFORMANCE_ROI.md)** *(492 lines)*
+9. **[PERFORMANCE_ROI.md](./PERFORMANCE_ROI.md)** *(492 lines)*
    - Financial analysis and projections
    - ROI calculations (1,996%)
    - Revenue impact (+$603,960/year)
    - 3-year financial forecast
 
 ### 📊 **Project Management**
-9. **[PRODUCTION_READINESS_CHECKLIST.md](./PRODUCTION_READINESS_CHECKLIST.md)** *(10,943 lines)* **NEW!**
+10. **[PRODUCTION_READINESS_CHECKLIST.md](./PRODUCTION_READINESS_CHECKLIST.md)** *(10,943 lines)* **NEW!**
    - Complete production readiness assessment
    - 328 hours of remaining implementation work
    - Prioritized tasks (High/Medium/Low)
@@ -292,7 +304,8 @@ Payback Period:             17 days
 1. Read [LIGHTHOUSE_README.md](./LIGHTHOUSE_README.md) (5 min)
 2. Review [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) (10 min)
 3. Skim [Lighthouse-Final-Report.md](./Lighthouse-Final-Report.md) (15 min)
-4. Ready to contribute!
+4. **If you encounter issues**: Check [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+5. Ready to contribute!
 
 ### For Developers Implementing Fixes
 1. Start with [LIGHTHOUSE_QUICK_START.md](./LIGHTHOUSE_QUICK_START.md)
@@ -344,6 +357,7 @@ Payback Period:             17 days
 - **Implementation**: [LIGHTHOUSE_QUICK_START.md](./LIGHTHOUSE_QUICK_START.md)
 - **Business Case**: [PERFORMANCE_ROI.md](./PERFORMANCE_ROI.md)
 - **Project Structure**: [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
+- **Troubleshooting**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) ⭐ **Start here for issues**
 
 ### External Resources
 - [Web.dev Performance](https://web.dev/performance/)
@@ -515,15 +529,17 @@ const searchProperties = createDebouncedApiCall(
 1. Read [LIGHTHOUSE_README.md](./LIGHTHOUSE_README.md) (5 min)
 2. Review [TESTING_GUIDE.md](./TESTING_GUIDE.md) (30 min)
 3. Check [SECURITY_GUIDE.md](./SECURITY_GUIDE.md) (30 min)
-4. Start writing tests following the templates
-5. Implement Phase 1 optimizations using [LIGHTHOUSE_QUICK_START.md](./LIGHTHOUSE_QUICK_START.md)
+4. **If you have setup issues**: See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+5. Start writing tests following the templates
+6. Implement Phase 1 optimizations using [LIGHTHOUSE_QUICK_START.md](./LIGHTHOUSE_QUICK_START.md)
 
 ### For DevOps Engineers
 1. Review [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) (45 min)
 2. Check [.github/workflows/tests.yml](./.github/workflows/tests.yml) (15 min)
-3. Set up staging environment
-4. Configure monitoring and alerts
-5. Prepare production deployment
+3. **For deployment issues**: See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+4. Set up staging environment
+5. Configure monitoring and alerts
+6. Prepare production deployment
 
 ### For Product/Business Stakeholders
 1. Read [PERFORMANCE_ROI.md](./PERFORMANCE_ROI.md) (10 min)
