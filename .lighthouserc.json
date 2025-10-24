@@ -1,0 +1,54 @@
+{
+  "ci": {
+    "collect": {
+      // URLs to audit - Lighthouse will run on these pages
+      "url": [
+        "http://localhost:4173",
+        "http://localhost:4173/search",
+        "http://localhost:4173/properties"
+      ],
+      
+      // Number of times to run Lighthouse on each URL for stable results
+      "numberOfRuns": 3,
+      
+      // Chrome settings for Lighthouse
+      "settings": {
+        "chromeFlags": "--no-sandbox --disable-dev-shm-usage"
+      }
+    },
+    
+    "upload": {
+      // Store reports locally in filesystem
+      "target": "filesystem",
+      "outputDir": "./.lighthouseci",
+      
+      // Report filename pattern
+      "reportFilenamePattern": "%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%"
+    },
+    
+    "assert": {
+      // Use recommended Lighthouse assertions as baseline
+      "preset": "lighthouse:recommended",
+      
+      // Custom assertions and thresholds
+      "assertions": {
+        // Category scores (0-1 scale, 1 = 100%)
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["warn", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "categories:seo": ["warn", { "minScore": 0.9 }],
+        
+        // Core Web Vitals - specific metric thresholds (in milliseconds)
+        "first-contentful-paint": ["warn", { "maxNumericValue": 1800 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "speed-index": ["warn", { "maxNumericValue": 3400 }],
+        "interactive": ["warn", { "maxNumericValue": 3800 }]
+      },
+      
+      // Budget assertions from lighthouse-budget.json
+      "budgetsFile": "./lighthouse-budget.json"
+    }
+  }
+}

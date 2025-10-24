@@ -1,24 +1,28 @@
 name: Lighthouse Performance Audit
 
 on:
-  # Trigger on push to main branch
-  push:
-    branches:
-      - main
+  # Daily audit at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
   
   # Trigger on pull requests to main
   pull_request:
     branches:
       - main
+  
+  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   lighthouse:
     name: Run Lighthouse CI
     runs-on: ubuntu-latest
     
-    # Explicit permissions for security best practices
+    # Explicit permissions for security best practices and PR comments
     permissions:
       contents: read  # Read repository contents
+      pull-requests: write  # Post PR comments
+      issues: write  # Update issue comments
     
     steps:
       # Step 1: Checkout the repository
@@ -112,3 +116,93 @@ jobs:
           path: lighthouse-reports/phase1
           retention-days: 90
           if-no-files-found: warn
+      
+      # Step 11: Generate summary report for PR comment
+      - name: Generate Summary Report
+        if: github.event_name == 'pull_request'
+        id: summary
+        working-directory: Renthub
+        run: |
+          # Find the latest report files
+          REPORT_DIR=".lighthouseci"
+          
+          # Create a markdown summary
+          echo "## 🔍 Lighthouse Performance Audit Results" > summary.md
+          echo "" >> summary.md
+          echo "**Build**: #${{ github.run_number }}" >> summary.md
+          echo "**Commit**: ${{ github.sha }}" >> summary.md
+          echo "" >> summary.md
+          
+          # Check if reports exist
+          if [ -d "$REPORT_DIR" ] && [ "$(ls -A $REPORT_DIR)" ]; then
+            echo "✅ Lighthouse audits completed successfully!" >> summary.md
+            echo "" >> summary.md
+            echo "### 📊 Report Artifacts" >> summary.md
+            echo "Download detailed HTML and JSON reports from the workflow artifacts." >> summary.md
+            echo "" >> summary.md
+            echo "### 🎯 Key Metrics to Review" >> summary.md
+            echo "- **Performance Score**: Check overall performance rating" >> summary.md
+            echo "- **First Contentful Paint (FCP)**: Should be < 1.8s" >> summary.md
+            echo "- **Largest Contentful Paint (LCP)**: Should be < 2.5s" >> summary.md
+            echo "- **Total Blocking Time (TBT)**: Should be < 200ms" >> summary.md
+            echo "- **Cumulative Layout Shift (CLS)**: Should be < 0.1" >> summary.md
+            echo "" >> summary.md
+            echo "### 📦 Performance Budgets" >> summary.md
+            echo "Check the reports against budgets defined in \`lighthouse-budget.json\`" >> summary.md
+          else
+            echo "⚠️ No Lighthouse reports were generated. Please check the workflow logs." >> summary.md
+          fi
+          
+          # Save to GitHub step output
+          echo "summary_generated=true" >> $GITHUB_OUTPUT
+
+      # Step 12: Post PR comment with summary
+      - name: Post PR Comment with Summary
+        if: github.event_name == 'pull_request' && steps.summary.outputs.summary_generated == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const summaryPath = 'Renthub/summary.md';
+            
+            let body = '## 🔍 Lighthouse Performance Audit Results\n\n';
+            
+            if (fs.existsSync(summaryPath)) {
+              body = fs.readFileSync(summaryPath, 'utf8');
+            } else {
+              body += '⚠️ Summary file not found. Check workflow artifacts for reports.\n';
+            }
+            
+            body += '\n---\n';
+            body += `🔗 [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+            
+            // Find existing comment to update or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Lighthouse Performance Audit Results')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
