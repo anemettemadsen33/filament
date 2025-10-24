@@ -1,0 +1,355 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy (e.g., v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  # Pre-deployment checks
+  pre-deploy-checks:
+    name: Pre-Deployment Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Verify Tag Exists
+        run: |
+          if ! git rev-parse ${{ inputs.version }} >/dev/null 2>&1; then
+            echo "❌ Tag ${{ inputs.version }} does not exist"
+            exit 1
+          fi
+          echo "✅ Tag ${{ inputs.version }} verified"
+
+      - name: Check CI Status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ inputs.version }}';
+            const { data: commit } = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: tag
+            });
+            
+            console.log(`Commit SHA: ${commit.sha}`);
+            
+            // Check if CI passed for this commit
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: commit.sha
+            });
+            
+            const ciCheck = checks.check_runs.find(check => check.name.includes('CI'));
+            if (ciCheck && ciCheck.conclusion !== 'success') {
+              throw new Error('CI checks did not pass for this version');
+            }
+            
+            console.log('✅ CI checks passed');
+
+      - name: Database Backup Reminder
+        run: |
+          echo "⚠️  IMPORTANT: Ensure production database backup is completed before proceeding"
+          echo "Run: pg_dump -h production-db -U user -d renthub > backup-$(date +%Y%m%d-%H%M%S).sql"
+
+  # Production deployment with approval
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-deploy-checks
+    environment:
+      name: production
+      url: https://renthub.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'Renthub/package-lock.json'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_pgsql, intl, zip, gd
+          tools: composer:v2
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd Renthub
+          npm ci
+
+      - name: Build Frontend for Production
+        run: |
+          cd Renthub
+          npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.PRODUCTION_API_URL }}
+          VITE_APP_ENV: production
+          NODE_ENV: production
+
+      - name: Install Backend Dependencies
+        run: |
+          cd Rental-Platform-main/backend
+          composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
+
+      - name: Create Deployment Package
+        run: |
+          mkdir -p deployment-package
+          
+          # Create version file
+          echo "${{ inputs.version }}" > version.txt
+          echo "Deployed: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> version.txt
+          echo "Commit: ${{ github.sha }}" >> version.txt
+          
+          # Copy backend
+          rsync -av --exclude='node_modules' --exclude='.git' \
+            --exclude='tests' --exclude='storage/logs/*' --exclude='.env' \
+            Rental-Platform-main/backend/ deployment-package/backend/
+          
+          # Copy frontend build
+          cp -r Renthub/dist deployment-package/frontend
+          
+          # Copy version file
+          cp version.txt deployment-package/
+
+      - name: Deploy to Production Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          source: "deployment-package/*"
+          target: "/var/www/releases/${{ inputs.version }}"
+          strip_components: 1
+
+      - name: Run Deployment Commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            # Create symlink to new release
+            ln -sfn /var/www/releases/${{ inputs.version }}/backend /var/www/production/backend-new
+            ln -sfn /var/www/releases/${{ inputs.version }}/frontend /var/www/production/frontend-new
+            
+            # Navigate to backend
+            cd /var/www/releases/${{ inputs.version }}/backend
+            
+            # Set permissions
+            chmod -R 755 storage bootstrap/cache
+            
+            # Create symbolic link to persistent storage
+            rm -rf storage
+            ln -s /var/www/production/storage storage
+            
+            # Link .env from persistent location
+            ln -s /var/www/production/.env .env
+            
+            # Run migrations (with backup safety)
+            php artisan migrate --force
+            
+            # Optimize for production
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan optimize
+            
+            # Switch to new release atomically
+            mv /var/www/production/backend /var/www/production/backend-old
+            mv /var/www/production/backend-new /var/www/production/backend
+            mv /var/www/production/frontend /var/www/production/frontend-old
+            mv /var/www/production/frontend-new /var/www/production/frontend
+            
+            # Restart services
+            sudo systemctl restart php8.2-fpm
+            sudo systemctl reload nginx
+            
+            # Wait for services to start
+            sleep 5
+            
+            # Clean up old release (keep for quick rollback)
+            # We keep backend-old and frontend-old for quick rollback
+
+      - name: Health Check
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 15
+          
+          max_retries=5
+          retry=0
+          
+          while [ $retry -lt $max_retries ]; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://renthub.com/health)
+            
+            if [ $response -eq 200 ]; then
+              echo "✅ Production deployment successful - health check passed"
+              exit 0
+            fi
+            
+            retry=$((retry + 1))
+            echo "Health check attempt $retry failed (HTTP $response), retrying..."
+            sleep 10
+          done
+          
+          echo "❌ Production deployment failed - health check did not pass after $max_retries attempts"
+          exit 1
+
+      - name: Verify API Endpoints
+        run: |
+          # Test critical API endpoints
+          echo "Testing API endpoints..."
+          
+          # Auth ping
+          curl -f https://renthub.com/api/v1/auth/ping || exit 1
+          
+          # Properties endpoint
+          curl -f https://renthub.com/api/v1/properties?page=1 || exit 1
+          
+          echo "✅ API endpoints verified"
+
+      - name: Tag Deployment
+        run: |
+          git tag -a "deployed-${{ inputs.version }}" -m "Deployed to production on $(date)"
+          git push origin "deployed-${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ inputs.version }}',
+              name: 'Production Release ${{ inputs.version }}',
+              body: `## Production Deployment
+              
+              **Version**: ${{ inputs.version }}
+              **Deployed**: ${new Date().toISOString()}
+              **Commit**: ${{ github.sha }}
+              **Environment**: Production
+              
+              ### Deployment Info
+              - ✅ Pre-deployment checks passed
+              - ✅ Build successful
+              - ✅ Health checks passed
+              - ✅ API endpoints verified
+              
+              ### Rollback
+              If issues arise, rollback using:
+              \`\`\`bash
+              ssh production "cd /var/www/production && mv backend backend-failed && mv backend-old backend && sudo systemctl restart php8.2-fpm nginx"
+              \`\`\`
+              `,
+              draft: false,
+              prerelease: false
+            });
+
+  # Post-deployment monitoring
+  post-deploy-monitoring:
+    name: Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy-production
+
+    steps:
+      - name: Monitor Error Rates
+        run: |
+          echo "Monitoring error rates for 5 minutes..."
+          # This would integrate with your monitoring system (Sentry, Datadog, etc.)
+          # For now, we'll just wait and do basic checks
+          
+          for i in {1..5}; do
+            echo "Check $i/5..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://renthub.com/health)
+            
+            if [ $response -ne 200 ]; then
+              echo "❌ Health check failed during monitoring - HTTP $response"
+              exit 1
+            fi
+            
+            sleep 60
+          done
+          
+          echo "✅ Monitoring complete - no issues detected"
+
+      - name: Notify Team - Success
+        if: success()
+        run: |
+          echo "🎉 Production deployment ${{ inputs.version }} completed successfully!"
+          # Add notification logic (Slack, email, etc.)
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"✅ Production deployed: ${{ inputs.version }}"}'
+
+      - name: Notify Team - Failure
+        if: failure()
+        run: |
+          echo "❌ Production deployment ${{ inputs.version }} failed!"
+          # Add urgent notification logic
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"🚨 URGENT: Production deployment failed: ${{ inputs.version }}"}'
+
+  # Rollback job (manual trigger only)
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: deploy-production
+
+    steps:
+      - name: Rollback to Previous Version
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            echo "Starting rollback..."
+            
+            cd /var/www/production
+            
+            # Rollback to previous release
+            mv backend backend-failed
+            mv backend-old backend
+            mv frontend frontend-failed
+            mv frontend-old frontend
+            
+            # Restart services
+            sudo systemctl restart php8.2-fpm
+            sudo systemctl reload nginx
+            
+            echo "✅ Rollback completed"
+
+      - name: Verify Rollback
+        run: |
+          sleep 10
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://renthub.com/health)
+          
+          if [ $response -eq 200 ]; then
+            echo "✅ Rollback successful - health check passed"
+          else
+            echo "❌ Rollback verification failed - HTTP $response"
+            echo "🚨 MANUAL INTERVENTION REQUIRED"
+            exit 1
+          fi

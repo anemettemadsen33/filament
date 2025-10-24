@@ -23,21 +23,74 @@
 
 ## 🎯 Quick Start
 
-### For Developers
+### Prerequisites
+- PHP 8.2+
+- Node.js 18+
+- PostgreSQL 15+ or MySQL 8+
+- Composer 2+
+- npm or yarn
+
+### 🚀 Full Stack Setup (5 Minutes)
+
+#### Backend (Laravel + Filament)
 ```bash
-# 1. Read the navigation hub
-cat LIGHTHOUSE_README.md
+cd Rental-Platform-main/backend
+
+# 1. Install dependencies
+composer install
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your database credentials
+
+# 3. Generate application key
+php artisan key:generate
+
+# 4. Run migrations
+php artisan migrate
+
+# 5. Start development server
+php artisan serve
+# Backend running at http://localhost:8000
+```
+
+#### Frontend (React + TypeScript)
+```bash
+cd Renthub
+
+# 1. Install dependencies
+npm ci
+
+# 2. Configure environment
+cp .env.example .env
+# Verify VITE_API_BASE_URL=http://localhost:8000
+
+# 3. Start development server
+npm run dev
+# Frontend running at http://localhost:5173
+```
+
+#### Access Points
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000/api
+- **Admin Panel**: http://localhost:8000/admin
+
+**Having issues?** → See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for connection, build, and environment problems
+
+### 📋 For Implementation Teams
+```bash
+# 1. Review the production roadmap
+cat PRODUCTION_READINESS_CHECKLIST.md
 
 # 2. Review implementation guide
 cat LIGHTHOUSE_QUICK_START.md
 
-# 3. Start Phase 1 implementation
-cd Renthub
-npm install
-npm run dev
-```
+# 3. Check security requirements
+cat SECURITY_CHECKLIST.md
 
-**Having issues?** → See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for connection, build, and environment problems
+# 4. Review operational procedures
+cat RUNBOOK.md
+```
 
 ### For Product/Business
 ```bash
