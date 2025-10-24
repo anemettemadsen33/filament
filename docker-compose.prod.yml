@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./Renthub
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+        VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
+    container_name: renthub-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - renthub-network
+    depends_on:
+      - backend
+    environment:
+      - NGINX_HOST=renthub.local
+      - NGINX_PORT=80
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro  # SSL certificates
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend (Laravel + PHP-FPM)
+  backend:
+    build:
+      context: ./Rental-Platform-main/backend
+      dockerfile: Dockerfile
+    container_name: renthub-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - renthub-network
+    depends_on:
+      - database
+      - redis
+    environment:
+      - APP_NAME=${APP_NAME:-RentHub}
+      - APP_ENV=${APP_ENV:-production}
+      - APP_KEY=${APP_KEY}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${APP_URL:-http://localhost}
+      - LOG_CHANNEL=${LOG_CHANNEL:-stack}
+      - LOG_LEVEL=${LOG_LEVEL:-error}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-renthub}
+      - DB_USERNAME=${DB_USERNAME:-renthub}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - BROADCAST_DRIVER=redis
+      - CACHE_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - SESSION_DRIVER=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PORT=6379
+      - MAIL_MAILER=${MAIL_MAILER:-smtp}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-RentHub}
+    volumes:
+      - backend-storage:/var/www/html/storage
+      - backend-logs:/var/www/html/storage/logs
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan --version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database (PostgreSQL)
+  database:
+    image: postgres:15-alpine
+    container_name: renthub-database
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    networks:
+      - renthub-network
+    environment:
+      - POSTGRES_DB=${DB_DATABASE:-renthub}
+      - POSTGRES_USER=${DB_USERNAME:-renthub}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - database-data:/var/lib/postgresql/data
+      - ./backups:/backups  # Database backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-renthub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Cache & Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: renthub-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - renthub-network
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Queue Worker
+  queue-worker:
+    build:
+      context: ./Rental-Platform-main/backend
+      dockerfile: Dockerfile
+    container_name: renthub-queue-worker
+    restart: unless-stopped
+    networks:
+      - renthub-network
+    depends_on:
+      - backend
+      - database
+      - redis
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-renthub}
+      - DB_USERNAME=${DB_USERNAME:-renthub}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - QUEUE_CONNECTION=redis
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - backend-storage:/var/www/html/storage
+
+  # Scheduler (Cron)
+  scheduler:
+    build:
+      context: ./Rental-Platform-main/backend
+      dockerfile: Dockerfile
+    container_name: renthub-scheduler
+    restart: unless-stopped
+    networks:
+      - renthub-network
+    depends_on:
+      - backend
+      - database
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-renthub}
+      - DB_USERNAME=${DB_USERNAME:-renthub}
+      - DB_PASSWORD=${DB_PASSWORD}
+    command: php artisan schedule:work
+    volumes:
+      - backend-storage:/var/www/html/storage
+
+networks:
+  renthub-network:
+    driver: bridge
+
+volumes:
+  database-data:
+    driver: local
+  redis-data:
+    driver: local
+  backend-storage:
+    driver: local
+  backend-logs:
+    driver: local
