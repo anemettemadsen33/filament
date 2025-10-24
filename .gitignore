@@ -68,6 +68,10 @@ Dockerfile*
 lighthouse-reports/**/*.html
 lighthouse-reports/**/*.json
 lighthouse-reports/**/*.txt
+!lighthouse-reports/baseline/score.txt
+!lighthouse-reports/phase1/target.txt
+!lighthouse-reports/phase2/target.txt
+!lighthouse-reports/final/target.txt
 !lighthouse-reports/README.md
 !lighthouse-reports/baseline/.gitkeep
 .lighthouseci/
