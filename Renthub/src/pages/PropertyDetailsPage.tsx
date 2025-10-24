@@ -14,6 +14,7 @@ import { LandlordProfile } from '@/components/LandlordProfile'
 import { VirtualTourGallery } from '@/components/VirtualTourGallery'
 import { PropertyLocationMap } from '@/components/PropertyLocationMap'
 import { SharePropertyButton } from '@/components/SharePropertyButton'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { generatePriceHistory } from '@/lib/priceHistoryUtils'
 import { ArrowLeft, Heart, MapPin, Bed, Bathtub, Ruler, Calendar, User as UserIcon, Eye, Phone, Scales, Bell, CheckCircle, Key } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
@@ -129,10 +130,13 @@ export function PropertyDetailsPage({
             <div className="lg:col-span-2 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg overflow-hidden">
                 {property.images.slice(0, 4).map((image, idx) => (
-                  <img
+                  <OptimizedImage
                     key={idx}
                     src={image}
                     alt={`${property.title} ${idx + 1}`}
+                    width={idx === 0 ? 1200 : 600}
+                    height={idx === 0 ? 600 : 400}
+                    priority={idx === 0}
                     className={`w-full h-64 object-cover ${idx === 0 ? 'col-span-2 h-96' : ''}`}
                   />
                 ))}

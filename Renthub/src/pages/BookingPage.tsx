@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { VoucherInput } from '@/components/VoucherInput'
 import { VoucherBrowserModal } from '@/components/VoucherBrowserModal'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { toast } from 'sonner'
 import { CalendarBlank, Clock, CreditCard, User as UserIcon, Envelope, Phone, ArrowLeft, CheckCircle, MapPin, Bed, Bathtub, Tag } from '@phosphor-icons/react'
 import { addDays, differenceInDays, format } from 'date-fns'
@@ -207,9 +208,12 @@ export function BookingPage({ properties, currentUser, vouchers, onBook, onApply
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="relative h-64 rounded-lg overflow-hidden">
-                  <img
+                  <OptimizedImage
                     src={property.images[0]}
                     alt={property.title}
+                    width={800}
+                    height={400}
+                    priority={true}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-4 left-4">

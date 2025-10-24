@@ -87,8 +87,28 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lighthouse-reports
+          name: lighthouse-reports-phase1
           path: Renthub/.lighthouseci
           retention-days: 30
           if-no-files-found: warn
           compression-level: 6
+      
+      # Step 9: Copy reports to lighthouse-reports/phase1 for historical tracking
+      - name: Save Phase 1 reports
+        if: always()
+        run: |
+          mkdir -p lighthouse-reports/phase1
+          cp -r Renthub/.lighthouseci/* lighthouse-reports/phase1/ || true
+          echo "Phase 1 Optimization - $(date)" > lighthouse-reports/phase1/README.txt
+          echo "Branch: ${{ github.ref_name }}" >> lighthouse-reports/phase1/README.txt
+          echo "Commit: ${{ github.sha }}" >> lighthouse-reports/phase1/README.txt
+      
+      # Step 10: Upload phase1 reports as separate artifact
+      - name: Upload Phase 1 tracking reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-phase1-tracking
+          path: lighthouse-reports/phase1
+          retention-days: 90
+          if-no-files-found: warn
