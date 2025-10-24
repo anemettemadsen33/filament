@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LandlordBadge } from './LandlordBadge'
 import { VirtualTourBadge } from './VirtualTourBadge'
 import { PriceDisplay } from './PriceDisplay'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { shareProperty, copyToClipboard } from '@/lib/socialSharing'
 import {
   DropdownMenu,
@@ -99,13 +100,19 @@ export function PropertyCard({ property, onClick, isFavorite, onToggleFavorite, 
         onClick={onClick}
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-muted to-muted/50">
-          <motion.img
-            src={property.images[0]}
-            alt={property.title}
-            className="w-full h-full object-cover"
+          <motion.div
             whileHover={{ scale: 1.08 }}
             transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          />
+            className="w-full h-full"
+          >
+            <OptimizedImage
+              src={property.images[0]}
+              alt={property.title}
+              className="w-full h-full object-cover"
+              width={800}
+              height={600}
+            />
+          </motion.div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
           <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
