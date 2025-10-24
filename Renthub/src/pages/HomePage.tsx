@@ -378,3 +378,6 @@ export function HomePage({
     </div>
   )
 }
+
+// Default export for compatibility with lazy loading
+export default HomePage
