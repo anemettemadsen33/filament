@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { OptimizedImage } from '@/components/ui/OptimizedImage'
 import { toast } from 'sonner'
 import { EnvelopeSimple, User, Phone, PaperPlaneRight, ArrowLeft, MapPin, ChatCircleDots, CheckCircle } from '@phosphor-icons/react'
 
@@ -205,9 +206,12 @@ export function ContactPage({ properties, currentUser, onStartConversation }: Co
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative h-48 rounded-lg overflow-hidden">
-                  <img
+                  <OptimizedImage
                     src={property.images[0]}
                     alt={property.title}
+                    width={600}
+                    height={300}
+                    priority={true}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-4 left-4">
