@@ -1,0 +1,150 @@
+# Dependabot Configuration
+# Automated dependency updates for npm and Composer packages
+
+version: 2
+
+updates:
+  # Frontend dependencies (npm/Node.js) - Renthub
+  - package-ecosystem: "npm"
+    directory: "/Renthub"
+    schedule:
+      # Check for updates weekly on Mondays
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    # Open pull requests for dependency updates
+    open-pull-requests-limit: 5
+    
+    # Reviewers for dependency PRs (optional - configure as needed)
+    # reviewers:
+    #   - "your-github-username"
+    
+    # Labels to apply to Dependabot PRs
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "npm"
+    
+    # Grouping strategy for updates
+    groups:
+      # Group all production dependencies together
+      production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+          - "*-dev"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Group all development dependencies together
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "vitest*"
+          - "eslint*"
+          - "prettier*"
+          - "@testing-library/*"
+        dependency-type: "development"
+    
+    # Version update strategy
+    versioning-strategy: auto
+    
+    # Commit message prefix
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Backend dependencies (Composer/PHP) - Laravel Backend
+  - package-ecosystem: "composer"
+    directory: "/Rental-Platform-main/backend"
+    schedule:
+      # Check for updates weekly on Mondays
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    # Open pull requests for dependency updates
+    open-pull-requests-limit: 5
+    
+    # Labels to apply to Dependabot PRs
+    labels:
+      - "dependencies"
+      - "backend"
+      - "composer"
+    
+    # Grouping strategy for updates
+    groups:
+      # Group Laravel framework updates
+      laravel-framework:
+        patterns:
+          - "laravel/*"
+          - "illuminate/*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Group Filament updates
+      filament:
+        patterns:
+          - "filament/*"
+        update-types:
+          - "minor"
+          - "patch"
+      
+      # Group development dependencies
+      dev-dependencies:
+        patterns:
+          - "phpunit/*"
+          - "nunomaduro/*"
+          - "laravel/pint"
+          - "phpstan/*"
+        dependency-type: "development"
+    
+    # Version update strategy
+    versioning-strategy: auto
+    
+    # Commit message prefix
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Docker dependencies (if using Docker)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      # Check monthly for Docker image updates
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+    
+    labels:
+      - "dependencies"
+      - "docker"
+    
+    commit-message:
+      prefix: "chore(docker)"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Check weekly for GitHub Actions updates
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    
+    commit-message:
+      prefix: "chore(ci)"
+
+# Note: Dependabot auto-merge is DISABLED by default for security.
+# Review and approve dependency updates manually before merging.
+# To enable auto-merge for specific updates, use GitHub branch protection rules
+# and the Dependabot auto-merge feature in repository settings.
