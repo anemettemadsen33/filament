@@ -19,7 +19,6 @@ class CreatePropertyAction
         // Set default values
         $data['status'] = $data['status'] ?? 'draft';
         $data['is_featured'] = $data['is_featured'] ?? false;
-        $data['is_available'] = $data['is_available'] ?? true;
 
         // Create property
         $property = Property::create($data);

@@ -10,8 +10,12 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        // Reset cached roles and permissions (skip if cache table doesn't exist)
+        try {
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        } catch (\Exception $e) {
+            // Ignore cache errors during seeding
+        }
 
         // Create permissions
         $permissions = [

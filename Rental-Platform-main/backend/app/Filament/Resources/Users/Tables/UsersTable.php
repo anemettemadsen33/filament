@@ -102,11 +102,7 @@ class UsersTable
                     ->label('Export to Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->action(fn () => Excel::download(new UsersExport, 'users-' . now()->format('Y-m-d') . '.xlsx'))
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Export Users')
-                    ->modalDescription('Are you sure you want to export all users to Excel?')
-                    ->modalSubmitActionLabel('Export'),
+                    ->color('success'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -25,6 +25,7 @@ class PropertyActionsTest extends TestCase
             'address' => '456 Main St',
             'city' => 'New York',
             'country' => 'USA',
+            'postal_code' => '10001',
             'property_type' => 'apartment',
             'rental_type' => 'short_term',
             'bedrooms' => 2,
@@ -53,6 +54,7 @@ class PropertyActionsTest extends TestCase
             'address' => '789 Test Ave',
             'city' => 'Test City',
             'country' => 'Test Country',
+            'postal_code' => '12345',
             'property_type' => 'house',
             'rental_type' => 'long_term',
             'bedrooms' => 3,
@@ -79,6 +81,7 @@ class PropertyActionsTest extends TestCase
             'address' => '123 Draft St',
             'city' => 'Draft City',
             'country' => 'Draft Country',
+            'postal_code' => '54321',
             'property_type' => 'apartment',
             'rental_type' => 'short_term',
             'bedrooms' => 1,
@@ -90,7 +93,6 @@ class PropertyActionsTest extends TestCase
         $property = $action->execute($propertyData);
 
         $this->assertEquals('draft', $property->status);
-        $this->assertTrue($property->is_available);
         $this->assertFalse($property->is_featured);
     }
 
@@ -107,6 +109,7 @@ class PropertyActionsTest extends TestCase
             'address' => '999 Log St',
             'city' => 'Log City',
             'country' => 'Log Country',
+            'postal_code' => '99999',
             'property_type' => 'villa',
             'rental_type' => 'short_term',
             'bedrooms' => 4,

@@ -215,7 +215,7 @@ class Property extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['title', 'price_per_night', 'price_per_month', 'status', 'is_available'])
+            ->logOnly(['title', 'price_per_night', 'price_per_month', 'status'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }
