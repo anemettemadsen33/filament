@@ -83,6 +83,8 @@ jobs:
           cd Rental-Platform-main/backend
           php artisan migrate --force
           php artisan db:seed --class=RolesAndPermissionsSeeder --force
+          # Note: Coverage threshold set to 50% temporarily due to legacy code
+          # TODO: Gradually increase coverage to 80% over next 3 sprints
           php artisan test --coverage --min=50
         env:
           DB_CONNECTION: pgsql
