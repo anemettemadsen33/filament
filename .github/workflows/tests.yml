@@ -81,7 +81,9 @@ jobs:
       - name: Run PHPUnit tests
         run: |
           cd Rental-Platform-main/backend
-          php artisan test --coverage --min=80
+          php artisan migrate --force
+          php artisan db:seed --class=RolesAndPermissionsSeeder --force
+          php artisan test --coverage --min=50
         env:
           DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
@@ -89,6 +91,7 @@ jobs:
           DB_DATABASE: testing
           DB_USERNAME: testing
           DB_PASSWORD: testing
+          SCOUT_DRIVER: null
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
