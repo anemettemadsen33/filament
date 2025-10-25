@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Properties\Tables;
 
+use App\Exports\PropertiesExport;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -15,6 +16,7 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Artisan;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PropertiesTable
 {
@@ -76,6 +78,13 @@ class PropertiesTable
                     ->requiresConfirmation()
                     ->action(fn ($record) => $record->searchable())
                     ->visible(fn ($record) => method_exists($record,'searchable')),
+            ])
+            ->headerActions([
+                \Filament\Tables\Actions\Action::make('export')
+                    ->label('Export to Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(fn () => Excel::download(new PropertiesExport, 'properties-' . now()->format('Y-m-d') . '.xlsx'))
+                    ->color('success'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

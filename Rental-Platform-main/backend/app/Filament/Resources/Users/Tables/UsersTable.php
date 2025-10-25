@@ -2,15 +2,18 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Exports\UsersExport;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ExportAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UsersTable
 {
@@ -93,6 +96,13 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make(),
+            ])
+            ->headerActions([
+                \Filament\Tables\Actions\Action::make('export')
+                    ->label('Export to Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(fn () => Excel::download(new UsersExport, 'users-' . now()->format('Y-m-d') . '.xlsx'))
+                    ->color('success'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

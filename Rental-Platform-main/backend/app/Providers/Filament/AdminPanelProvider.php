@@ -31,8 +31,17 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->domain($adminDomain ?: null)
             ->login()
+            ->brandName('RentHub Admin')
+            ->favicon(public_path('favicon.ico'))
+            ->darkMode(true)
+            ->darkModeBrandLogo(asset('images/logo-dark.png'))
+            ->brandLogo(asset('images/logo.png'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
+                'gray' => Color::Slate,
+                'success' => Color::Green,
+                'warning' => Color::Amber,
+                'danger' => Color::Red,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -56,6 +65,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->sidebarCollapsibleOnDesktop()
+            ->maxContentWidth('full')
+            ->spa();
     }
 }
