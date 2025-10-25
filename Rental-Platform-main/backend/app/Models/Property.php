@@ -10,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Scout\Searchable;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Property extends Model
 {
-    use HasFactory, SoftDeletes, Searchable;
+    use HasFactory, SoftDeletes, Searchable, LogsActivity;
 
     protected $fillable = [
         'owner_id',
@@ -207,5 +209,14 @@ class Property extends Model
     public function shouldBeSearchable(): bool
     {
         return $this->status === 'published';
+    }
+
+    // Activity Log Configuration
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['title', 'price_per_night', 'price_per_month', 'status', 'is_available'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

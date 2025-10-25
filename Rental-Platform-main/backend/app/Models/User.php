@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Traits\HasRoles;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -156,6 +159,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === 'admin';
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole('super_admin');
+    }
+
     public function isOwner(): bool
     {
         return in_array($this->role, ['owner', 'admin']);
@@ -166,9 +174,18 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === 'guest';
     }
 
+    // Activity Log Configuration
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role', 'phone', 'locale', 'is_verified'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
     // Filament access control: only admins can access the admin panel
     public function canAccessPanel(FilamentPanel $panel): bool
     {
-        return $this->isAdmin();
+        return $this->isAdmin() || $this->hasRole(['super_admin', 'admin']);
     }
 }
